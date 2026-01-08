@@ -14,35 +14,66 @@ void draw_ui(Display *display, Window window, GC gc, SystemState *state) {
 
     // Header Decal
     XSetForeground(display, gc, 0x3b82f6); // Blue
-    XDrawString(display, window, gc, 20, 30, "QUOREMIND BAREMETAL v1.0 // METRIPLECTIC_KERNEL", 46);
+    XDrawString(display, window, gc, 20, 30, "QUOREMIND SIM // INTEGRATED TOROIDAL-SHEAR MODEL v3.0", 54);
     
     char buf[128];
-    sprintf(buf, "STABILITY: %.2f %%", state->stability);
+    sprintf(buf, "STABILITY: %.2f %% // SHEAR_FLOW: %.2f", state->stability, state->shear_flow);
     XDrawString(display, window, gc, 20, 50, buf, strlen(buf));
     
-    sprintf(buf, "MACH_FLOW: %.2f / 10.0", state->shear_flow);
-    XSetForeground(display, gc, (state->shear_flow >= 9.9) ? 0x10b981 : 0x3b82f6);
+    sprintf(buf, "CLOCK_C: %.4f // GLOBAL_ID: %.2f rad", state->sync_clock_c, state->global_identity);
+    XSetForeground(display, gc, (state->sync_clock_c > 0.5) ? 0x10b981 : 0x60a5fa);
     XDrawString(display, window, gc, 20, 70, buf, strlen(buf));
 
-    // Draw Z-Pinch Column
+    sprintf(buf, "BUS_THROUGHPUT: %.2f // BREATHING: %.2f", state->bus.bus_throughput, state->breathing_state);
+    XDrawString(display, window, gc, 20, 90, buf, strlen(buf));
+
     int cx = WIDTH / 2;
     int cy = HEIGHT / 2;
-    int col_h = 300;
-    int start_y = cy - 150;
-    
-    XSetForeground(display, gc, (state->shear_flow >= 9.9) ? 0xFFFFFF : 0x60a5fa);
-    
-    int prev_x = cx, prev_y = start_y;
-    for (int i = 0; i < 100; i++) {
-        double y_f = (double)i / 100.0;
-        int y = start_y + (int)(y_f * col_h);
+
+    // 1. Draw the Sheared Channel (Z-Pinch)
+    XSetForeground(display, gc, (state->shear_flow > 9.0) ? 0xFFFFFF : 0x94a3b8);
+    for (int i = 0; i < 20; i++) {
+        float y_off = (float)i * 15.0f - 150.0f;
+        float freq = 2.0f;
+        float amp = (100.0f - state->stability) * 0.5f;
+        int x_off = (int)(k_sin(state->time * 3.0f + (float)i * 0.5f) * amp);
+        XFillRectangle(display, window, gc, cx + x_off - 10, cy + (int)y_off, 20, 10);
         
-        double offset = sin(y_f * 5.0 + state->time * 2.0) * (100.0 - state->stability) * 0.5;
-        int x = cx + (int)offset;
-        
-        XDrawLine(display, window, gc, prev_x, prev_y, x, y);
-        prev_x = x;
-        prev_y = y;
+        // Photonic Packets
+        if (state->breathing_state > 0.5f && (int)(state->time * 10) % 20 == i) {
+            XSetForeground(display, gc, 0xfacc15); // Yellow
+            XFillArc(display, window, gc, cx + x_off - 5, cy + (int)y_off, 10, 10, 0, 360*64);
+            XSetForeground(display, gc, (state->shear_flow > 9.0) ? 0xFFFFFF : 0x94a3b8);
+        }
+    }
+
+    // 2. Draw Toroidal Modulation (Resonance)
+    XSetForeground(display, gc, (state->sync_clock_c > 0.5) ? 0x22d3ee : 0x3b82f6);
+    for (int i = 0; i < TORUS_DIM; i++) {
+        for (int j = 0; j < TORUS_DIM; j++) {
+            float intensity = state->phi_re[i][j] * state->phi_re[i][j] + state->phi_im[i][j] * state->phi_im[i][j];
+            if (intensity > 0.1) {
+                float angle = (float)i * (2.0f * PI / TORUS_DIM) + state->global_identity;
+                float radius = 100.0f + (float)j * 15.0f + intensity * 10.0f;
+                
+                int px = cx + (int)(k_cos(angle) * radius);
+                int py = cy + (int)(k_sin(angle) * radius);
+                
+                int size = (state->breathing_state > 0.5f) ? 6 : 3;
+                XFillArc(display, window, gc, px - size/2, py - size/2, size, size, 0, 360*64);
+            }
+        }
+    }
+
+    // 3. Core Sync Meters
+    for(int i=0; i<4; i++) {
+        XSetForeground(display, gc, 0x475569);
+        XDrawRectangle(display, window, gc, 650, 450 + i*30, 100, 20);
+        int fill = (int)(state->bus.core_sync[i] * 100);
+        XSetForeground(display, gc, (fill > 80) ? 0x10b981 : 0x3b82f6);
+        XFillRectangle(display, window, gc, 650, 450 + i*30, fill, 20);
+        sprintf(buf, "C%d", i);
+        XDrawString(display, window, gc, 630, 465 + i*30, buf, 2);
     }
 
     XFlush(display);

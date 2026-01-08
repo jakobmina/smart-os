@@ -3,22 +3,48 @@
 
 #include <stdint.h>
 
+#define PHI 1.618033988f
+#define PI  3.141592653f
+
 /**
- * @brief El Mandato Metriplético: Estructura de Sistema Dinámico (Freestanding)
+ * @brief Toroidal Field Integration Size
+ */
+#define TORUS_DIM 8
+
+/**
+ * @brief Inter-core Communication Bus
+ */
+typedef struct {
+    float core_sync[4];     // Sync levels for 4 virtual cores
+    float bus_throughput;   // Effective cross-core bit rate
+    float packet_loss;      // Error rate on the manifold
+} CoreBus;
+
+/**
+ * @brief El Mandato Metriplético: Estructura de Sistema Dinámico (Toroidal-Sheared)
  */
 typedef struct {
     float time;             // t
     float kink_amplitude;   // m=1 (Hamiltoniana)
     float stability;        // ρ (Métrica)
-    float shear_flow;       // v (Control)
-    float phi_res;          // Resonance PHI
+    float shear_flow;       // v (Control: Mach 10 create canal)
     
-    // Photonic / Quantum State (Lindblad)
+    // Toroidal Field Φ (Re, Im) for the compact manifold T^2
+    float phi_re[TORUS_DIM][TORUS_DIM];
+    float phi_im[TORUS_DIM][TORUS_DIM];
+    
+    float sync_clock_c;     // Scalar Observable c (Energy from compact dimensions)
+    float global_identity;  // Persistent angle I_global
+    float gamma_strobe;     // Interaction term Γ (Breathing Projector)
+    float breathing_state;  // ON/OFF State of the Laser Pump
+    
+    // Unified Information Metrics
     float node_density;     // ψ: Photonic Node Concentration
-    float pump_phase;       // Laser Pumping Phase
     float bit_stream;       // Information through-flow
+    float causal_flux;      // Causal trace (Restored)
     float golden_filter;    // Φ self-action filter
-    float causal_flux;      // Fragmented causal signal
+    
+    CoreBus bus;            // Inter-core interaction layer
 } SystemState;
 
 typedef struct {
@@ -32,10 +58,14 @@ void compute_lagrangian(const SystemState *state, Lagrangian *L);
 float golden_operator(float n);
 void solve_step(SystemState *state, float dt);
 
+// Toroidal specific operations
+float compute_sync_clock(SystemState *state);
+void apply_breathing_projector(SystemState *state, float dt);
+
 // Freestanding math stubs
 float k_sin(float x);
 float k_cos(float x);
-float k_pow(float x, float y);
-float k_log(float x);
+float k_exp(float x);
+float k_sqrt(float x);
 
 #endif // QCORE_METRIPLECTIC_H
