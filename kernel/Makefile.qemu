@@ -1,0 +1,31 @@
+LD = ld
+AS = nasm
+
+CFLAGS = -ffreestanding -O2 -Wall -Wextra -fno-stack-protector -fno-pie -m32 -fno-builtin
+LDFLAGS = -T linker.ld -m elf_i386
+
+# Use host gcc with -m32
+GCC_CMD = gcc
+
+SRCS = kernel_main.c qcore_metriplectic.c vga_driver.c
+ASM_SRCS = boot.asm
+OBJS = $(SRCS:.c=.o) boot.o
+
+TARGET = kernel.bin
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	$(LD) $(LDFLAGS) $(OBJS) -o $(TARGET)
+
+boot.o: boot.asm
+	$(AS) -f elf32 boot.asm -o boot.o
+
+%.o: %.c
+	$(GCC_CMD) $(CFLAGS) -c $< -o $@
+
+clean:
+	rm -f $(OBJS) $(TARGET)
+
+run: all
+	qemu-system-i386 -kernel $(TARGET)
