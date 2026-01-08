@@ -53,6 +53,9 @@ void init_system(SystemState *state) {
     state->bit_stream = 0.0f;
     state->causal_flux = 0.0f;
     state->golden_filter = PHI;
+    
+    state->bf_axis = 1.0f;       // Default to Bosonic (Visible)
+    state->visibility_score = 1.0f;
 
     // Initialize Bus
     for(int i=0; i<4; i++) state->bus.core_sync[i] = 0.0f;
@@ -133,13 +136,19 @@ void solve_step(SystemState *state, float dt) {
     float d_metr = (target_stability - state->stability) * 0.1f + tor_boost;
     state->stability += d_metr * dt;
 
-    // 4. Information Pump (The Breathing Laser)
-    // Causal flux is restored: it pulses with the breathing strobe
+    // 4. Lindblad Visibility Filter (Bosonic-Fermionic Axis)
+    // The bf_axis oscillates between +1 (Bosonic/Visible) and -1 (Fermionic/Protected)
+    state->bf_axis = k_cos(state->time * 0.4f); 
+    state->visibility_score = (1.0f + state->bf_axis) * 0.5f;
+
+    // Information Pump (The Breathing Laser)
+    // Causal flux is modulated by visibility - in Fermionic state it becomes "latent"
     if (state->breathing_state > 0.5f && state->stability > 90.0f) {
-        state->causal_flux = state->sync_clock_c * 5.0f; // 5V signal pulse
-        state->node_density += state->causal_flux * dt;
+        float raw_pump = state->sync_clock_c * 5.0f; 
+        state->causal_flux = raw_pump * state->visibility_score;
+        state->node_density += raw_pump * dt; // Density is conserved globally
     } else {
-        state->causal_flux *= 0.8f; // Decay
+        state->causal_flux *= 0.8f; 
         state->node_density *= 0.99f;
     }
     

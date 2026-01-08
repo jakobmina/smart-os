@@ -27,20 +27,28 @@ void draw_ui(Display *display, Window window, GC gc, SystemState *state) {
     sprintf(buf, "BUS_THROUGHPUT: %.2f // BREATHING: %.2f", state->bus.bus_throughput, state->breathing_state);
     XDrawString(display, window, gc, 20, 90, buf, strlen(buf));
 
+    sprintf(buf, "AXIS: %s // VISIBILITY: %.2f", (state->bf_axis > 0) ? "BOSONIC " : "FERMIONIC", state->visibility_score);
+    XSetForeground(display, gc, (state->bf_axis > 0) ? 0x22d3ee : 0xfb7185);
+    XDrawString(display, window, gc, 20, 110, buf, strlen(buf));
+
     int cx = WIDTH / 2;
     int cy = HEIGHT / 2;
 
     // 1. Draw the Sheared Channel (Z-Pinch)
+    // Intensity modulated by visibility
+    int alpha = (int)(state->visibility_score * 255);
     XSetForeground(display, gc, (state->shear_flow > 9.0) ? 0xFFFFFF : 0x94a3b8);
     for (int i = 0; i < 20; i++) {
         float y_off = (float)i * 15.0f - 150.0f;
-        float freq = 2.0f;
         float amp = (100.0f - state->stability) * 0.5f;
         int x_off = (int)(k_sin(state->time * 3.0f + (float)i * 0.5f) * amp);
-        XFillRectangle(display, window, gc, cx + x_off - 10, cy + (int)y_off, 20, 10);
         
-        // Photonic Packets
-        if (state->breathing_state > 0.5f && (int)(state->time * 10) % 20 == i) {
+        if (state->visibility_score > 0.1f) {
+            XFillRectangle(display, window, gc, cx + x_off - 10, cy + (int)y_off, 20, 10);
+        }
+        
+        // Photonic Packets (Only if visible)
+        if (state->breathing_state > 0.5f && (int)(state->time * 10) % 20 == i && state->visibility_score > 0.4f) {
             XSetForeground(display, gc, 0xfacc15); // Yellow
             XFillArc(display, window, gc, cx + x_off - 5, cy + (int)y_off, 10, 10, 0, 360*64);
             XSetForeground(display, gc, (state->shear_flow > 9.0) ? 0xFFFFFF : 0x94a3b8);
@@ -52,7 +60,7 @@ void draw_ui(Display *display, Window window, GC gc, SystemState *state) {
     for (int i = 0; i < TORUS_DIM; i++) {
         for (int j = 0; j < TORUS_DIM; j++) {
             float intensity = state->phi_re[i][j] * state->phi_re[i][j] + state->phi_im[i][j] * state->phi_im[i][j];
-            if (intensity > 0.1) {
+            if (intensity > 0.1 && state->visibility_score > 0.05f) {
                 float angle = (float)i * (2.0f * PI / TORUS_DIM) + state->global_identity;
                 float radius = 100.0f + (float)j * 15.0f + intensity * 10.0f;
                 
@@ -60,6 +68,8 @@ void draw_ui(Display *display, Window window, GC gc, SystemState *state) {
                 int py = cy + (int)(k_sin(angle) * radius);
                 
                 int size = (state->breathing_state > 0.5f) ? 6 : 3;
+                if (state->visibility_score < 0.4f && size == 6) size = 3;
+                
                 XFillArc(display, window, gc, px - size/2, py - size/2, size, size, 0, 360*64);
             }
         }

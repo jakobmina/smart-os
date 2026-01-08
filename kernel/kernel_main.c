@@ -61,9 +61,18 @@ void kernel_main(uint32_t magic, void* mbi) {
         if (state.bus.bus_throughput > 1.0f) k_print_at(18, 6, "MAXFLOW", LIGHT_BLUE, BLACK);
         else k_print_at(18, 6, "IDLE", DARK_GRAY, BLACK);
 
-        k_print_at(2, 7, "LASER PUMP:", LIGHT_GRAY, BLACK);
-        if (state.breathing_state > 0.5f) k_print_at(17, 7, "[B_ACTIVE]", WHITE, BLACK);
-        else k_print_at(17, 7, "[B_IDLE]", DARK_GRAY, BLACK);
+        k_print_at(2, 7, "LINDBLAD AXIS:", LIGHT_GRAY, BLACK);
+        if (state.bf_axis > 0.0f) k_print_at(18, 7, "BOSONIC ", CYAN, BLACK);
+        else k_print_at(18, 7, "FERMIONIC", MAGENTA, BLACK);
+
+        k_print_at(2, 8, "VISIBILITY:", LIGHT_GRAY, BLACK);
+        int vis_pct = (int)(state.visibility_score * 100);
+        char vis_buf[8];
+        vis_buf[0] = '0' + (vis_pct / 100) % 10;
+        vis_buf[1] = '0' + (vis_pct / 10) % 10;
+        vis_buf[2] = '0' + (vis_pct % 10);
+        vis_buf[3] = '%'; vis_buf[4] = '\0';
+        k_print_at(18, 8, vis_buf, (vis_pct > 50) ? GREEN : YELLOW, BLACK);
 
         // Render Holistic Visualization
         // 1. Central Sheared Channel (Z-Pinch)
@@ -75,9 +84,16 @@ void kernel_main(uint32_t magic, void* mbi) {
             int y = center_y - 7 + i;
             float offset = k_sin(y_f * 4.0f + state.time) * (100.0f - state.stability) * 0.05f;
             int x_val = cx + (int)offset;
-            k_putc(x_val, y, '#', chan_color, BLACK);
-            // Pulsing Node in Channel
-            if (state.breathing_state > 0.5f && (int)(state.time * 20) % 15 == i) {
+            
+            // Fading logic for channel
+            char c_out = '#';
+            if (state.visibility_score < 0.2f) c_out = ' ';
+            else if (state.visibility_score < 0.5f) c_out = '.';
+            
+            if (c_out != ' ') k_putc(x_val, y, c_out, chan_color, BLACK);
+            
+            // Pulsing Node in Channel (Only if visible)
+            if (state.breathing_state > 0.5f && (int)(state.time * 20) % 15 == i && state.visibility_score > 0.3f) {
                 k_putc(x_val, y, '@', YELLOW, BLACK);
             }
         }
@@ -93,7 +109,12 @@ void kernel_main(uint32_t magic, void* mbi) {
                     float radius = 5.0f + (float)j * 0.4f;
                     int x_pos = tx + (int)(k_cos(angle) * radius * 2.1f);
                     int y_pos = center_y + (int)(k_sin(angle) * radius);
-                    k_putc(x_pos, y_pos, (state.breathing_state > 0.5f) ? '*' : '.', tor_color, BLACK);
+                    
+                    char t_out = (state.breathing_state > 0.5f) ? '*' : '.';
+                    if (state.visibility_score < 0.1f) t_out = ' ';
+                    else if (state.visibility_score < 0.4f && t_out == '*') t_out = '.';
+                    
+                    if (t_out != ' ') k_putc(x_pos, y_pos, t_out, tor_color, BLACK);
                 }
             }
         }

@@ -44,6 +44,10 @@ typedef struct {
     float causal_flux;      // Causal trace (Restored)
     float golden_filter;    // Φ self-action filter
     
+    // Lindblad Visibility Filter (Bosonic-Fermionic Axis)
+    float bf_axis;          // Sn: [+1 Bosonic/Visible, -1 Fermionic/Protected]
+    float visibility_score; // Transparency of the hologram
+    
     CoreBus bus;            // Inter-core interaction layer
 } SystemState;
 

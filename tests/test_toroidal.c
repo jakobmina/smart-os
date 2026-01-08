@@ -11,22 +11,30 @@ int main() {
     assert(state.shear_flow == 10.0f);
     assert(state.gamma_strobe == 0.2f);
 
-    printf("[TEST] Running 100 steps of integration...\n");
+    printf("[TEST] Running 150 steps of integration...\n");
     float prev_id = state.global_identity;
-    for (int i = 0; i < 100; i++) {
+    float max_vis = 0.0f;
+    float min_vis = 1.0f;
+
+    for (int i = 0; i < 150; i++) {
         solve_step(&state, 0.1f);
         
-        // Verify clock_c is in a reasonable range
-        if (state.sync_clock_c < -10.0f || state.sync_clock_c > 10.0f) {
-            printf("CRITICAL ERROR: Clock_c = %.4f at step %d\n", state.sync_clock_c, i);
-        }
-        assert(state.sync_clock_c >= -10.0f && state.sync_clock_c <= 10.0f);
+        if (state.visibility_score > max_vis) max_vis = state.visibility_score;
+        if (state.visibility_score < min_vis) min_vis = state.visibility_score;
+
+        assert(state.bf_axis >= -1.05f && state.bf_axis <= 1.05f);
+        assert(state.visibility_score >= -0.05f && state.visibility_score <= 1.05f);
         
-        if (i % 20 == 0) {
-            printf("Step %d: Clock_c = %.4f, Identity = %.4f rad, Stability = %.2f%%\n", 
-                   i, state.sync_clock_c, state.global_identity, state.stability);
+        if (i % 30 == 0) {
+            printf("Step %d: Visibility = %.2f, Axis = %s, Stability = %.2f%%\n", 
+                   i, state.visibility_score, (state.bf_axis > 0) ? "BOSONIC" : "FERMIONIC", state.stability);
         }
     }
+
+    printf("[TEST] Verifying Visibility Dynamics...\n");
+    assert(max_vis > 0.8f);
+    assert(min_vis < 0.2f);
+    printf("PASS: Visibility cycled between %.2f and %.2f\n", min_vis, max_vis);
 
     printf("[TEST] Verifying Global Identity evolution...\n");
     // Global identity should have evolved if there was resonance

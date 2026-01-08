@@ -1,12 +1,13 @@
 # Smart-OS: The Photonic-Metriplectic Kernel
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Stability: Stable](https://img.shields.io/badge/Stability-Stable-blue.svg)](#)
-[![Target: i386-Baremetal](https://img.shields.io/badge/Target-i386--Baremetal-orange.svg)](#)
+[![Stability: Stable](https://img.shields.io/badge/Stability-Stable-blue.svg)](https://github.com/jakobmina/smart-os)
+[![Target: i386-Baremetal](https://img.shields.io/badge/Target-i386--Baremetal-orange.svg)](https://github.com/jakobmina/smart-os)
 
 **Smart-OS** is a specialized baremetal operating system kernel designed for **Photonic Information Transport** using the principles of **Metriplectic Dynamics** and **Topological Lindblad Pumping**.
 
 ---
+
 ## 🌊 The Vision
 
 Smart-OS represents a fundamental shift in how we think about operating systems. Rather than treating an OS as a collection of sequential algorithms competing for resources, we treat it as a **physical system** governed by fluid dynamics, topology, and quantum principles.
@@ -14,7 +15,6 @@ Smart-OS represents a fundamental shift in how we think about operating systems.
 The kernel doesn't just manage processes—it **orchestrates a symphony** where every bit, every photon, every clock cycle is part of a greater harmonic whole.
 
 **"From Silicon Dreams to Photonic Reality"**
-
 
 ## 🌌 Core Philosophy: El Mandato Metriplético
 
@@ -60,11 +60,11 @@ The **QuoreMind Q-CORE** is not a conventional OS. It is a physical-informationa
 
 * **Golden Ratio Filter (Φ)**: Implements the recursive causal reduction:
 
-  ```
-  Φ_f = (Φ · Φ_f + 1) / 2
-  ```
+```c
+Φ_f = (Φ · Φ_f + 1) / 2
+```
 
-- **Packet Fragmentation**: Reduces **5V** information packets into stable binary states through the "/2" final constraint of real binary physics.
+* **Packet Fragmentation**: Reduces **5V** information packets into stable binary states through the "/2" final constraint of real binary physics.
 
 ---
 
@@ -135,6 +135,7 @@ Instead of processing 32 bits linearly, we process a **Global Identity of 1024 p
 ### Metriplectic Homeostasis
 
 The kernel maintains balance through continuous competition between:
+
 * **Conservative Forces** (Hamiltonian): Preserve information energy
 * **Dissipative Forces** (Metric): Stabilize through controlled entropy
 
@@ -143,6 +144,7 @@ This creates a self-correcting system that neither "explodes" nor "freezes"—it
 ### Laminar Flow Architecture
 
 Information flows through the kernel like a fluid in a shear channel:
+
 * **Velocity Profile**: Fast in the core, slower at boundaries (no-slip condition)
 * **Turbulence Prevention**: The Z-Pinch oscillations act as magnetic rails
 * **Thermal Regulation**: Entropy dissipation is distributed, never concentrated
@@ -150,15 +152,25 @@ Information flows through the kernel like a fluid in a shear channel:
 ### Toroidal Resonance Synchronization
 
 All processing nodes sync to a global toroidal breathing pattern:
+
 * **Period**: Tuned to golden ratio harmonics
 * **Phase Locking**: Photonic nodes lock to the global clock automatically
 * **Resilient**: Loss of individual nodes doesn't break synchronization (topological protection)
+
+### Lindblad Visibility Filter (Bosonic-Fermionic Axis)
+
+The system manages information state through the **Bosonic-Fermionic Alignment**:
+
+* **Bosonic Axis (Sn = +1)**: Information is visible and broadcasted as a transportable hologram. The "channel" is transparent to the observer.
+* **Fermionic Axis (Sn = -1)**: Information is encapsulated and protected within the metric of the vacuum. It remains reversible and persistent but becomes "invisible" or "ghosted" to outside probes.
+* **Privacy Dynamics**: This acts as a physical privacy layer where only the controller of the phase-angle can determine the transparency of the information stream.
 
 ---
 
 ## 🔬 Research Applications
 
 This kernel is ideal for:
+
 * **Fault-Tolerant Computing**: Topological protection against bit flips
 * **Real-Time Systems**: Deterministic synchronization via Breathing
 * **Information Physics**: Experimental validation of DIT (Dynamic Information Theory)
