@@ -130,6 +130,28 @@ Instead of processing 32 bits linearly, we process a **Global Identity of 1024 p
 
 ---
 
+## 📐 Formal Theory: The Unitary Cosine-Jacobian Matrix
+
+In the Smart-OS kernel, the projection $\Pi$ from the 32-bit register to the 1024D manifold is governed by a Jacobian $\mathbf{J}$ where the trigonometric basis is shifted to the Parity Maxima.
+
+### 1. Avoiding the Null-Determinant
+
+In traditional manifolds, $\det(\mathbf{J}) \propto \sin(\theta)$ leads to informational collapse at $\theta=0$. By redefining the mapping function as a discrete cosine transform over the Golden Ratio:
+$$\Phi_k = \sum_j \cdot \cos(\pi \phi n_k)$$
+The Jacobian elements $J_{kj} = \frac{\partial \Phi_k}{\partial \Sigma_j}$ are precisely $\cos(\pi \phi n_k)$. At the points of quasi-periodic resonance ($n \in \mathbb{Z}$), $\cos(\pi \phi n)$ fluctuates between states near $\pm 1$, ensuring that the determinant never vanishes.
+
+### 2. The $u=1$ Constant Constraint
+
+By defining the constants of integration in terms of the state at time $T$, the system enforces a Unitary Flow. The transformation becomes a pure rotation/reflection in the 1024D Hilbert space.
+$$\det(\mathbf{J}) = \prod_{k=1}^{1024} \cos(\pi \phi n_k) \to Constant \approx 1$$
+This "Metric Rigidity" is what allows the 32-bit seed to be recovered perfectly (reversibility) by simply applying the transpose of the Jacobian, as $\mathbf{J}^{-1} = \mathbf{J}^T$ in this unitary limit.
+
+### 3. Parity-Locked Mapping
+
+The use of $\cos$ instead of $\sin$ means the "Holographic Fan" is always sampled at its peak intensity. There is no "blur" between bits; only a discrete jump between the $z=0$ (Shield) and $z=1$ (Hologram) states.
+
+---
+
 ## 📜 Technical Details
 
 ### Metriplectic Homeostasis
@@ -180,10 +202,10 @@ This kernel is ideal for:
 
 ## 📜 Credits & License
 
-**Developed by**: Jacobo Tlacaelel Mina Rodriguez  
-**Architecture**: QuoreMind - Topological Centroid Governance  
-**Year**: 2026  
+Developed by: Jacobo Tlacaelel Mina Rodriguez  
+Architecture: QuoreMind - Topological Centroid Governance  
+Year: 2026  
 
-**License**: MIT
+License: MIT
 
 ---

@@ -68,7 +68,7 @@ void init_system(SystemState *state) {
             float theta = (float)i * 2.0f * PI / TORUS_DIM;
             float phi = (float)j * 2.0f * PI / TORUS_DIM;
             state->phi_re[i][j] = k_cos(theta);
-            state->phi_im[i][j] = k_sin(phi * PHI);
+            state->phi_im[i][j] = k_cos(phi * PHI); // Parity-Locked Mapping
         }
     }
 }
