@@ -7,7 +7,7 @@ LDFLAGS = -T linker.ld -m elf_i386
 # Use host gcc with -m32
 GCC_CMD = gcc
 
-SRCS = kernel_main.c qcore_metriplectic.c vga_driver.c
+SRCS = kernel_main.c qcore_metriplectic.c vga_driver.c i2c_lcd.c i2c.c
 ASM_SRCS = boot.asm
 OBJS = $(SRCS:.c=.o) boot.o
 

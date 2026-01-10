@@ -5,6 +5,7 @@
 
 #define PHI 1.618033988f
 #define PI  3.141592653f
+#define PI_PHI_CONST 5.083203692f 
 
 /**
  * @brief Toroidal Field Integration Size
@@ -60,6 +61,7 @@ typedef struct {
 void init_system(SystemState *state);
 void compute_lagrangian(const SystemState *state, Lagrangian *L);
 float golden_operator(float n);
+float k_phase_lock(float n); 
 void solve_step(SystemState *state, float dt);
 
 // Toroidal specific operations

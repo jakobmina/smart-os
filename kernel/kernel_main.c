@@ -1,8 +1,10 @@
 #include "qcore_metriplectic.h"
 #include "vga_driver.h"
+#include "i2c_lcd.h"
 
 // Global state for predictability in the freestanding environment
 SystemState state;
+LcdI2c lcd;
 
 // Port I/O
 static inline void outb(uint16_t port, uint8_t val) {
@@ -28,6 +30,12 @@ void kernel_main(uint32_t magic, void* mbi) {
     serial_print("\n--- QUOREMIND KERNEL OS BOOTED (TEXT MODE) ---\n");
     init_system(&state);
     k_clear(BLACK);
+
+    // Initialize I2C LCD
+    lcd_init(&lcd, 0x27, 20, 4);
+    lcd_clear(&lcd);
+    lcd_set_cursor(&lcd, 0, 0);
+    lcd_print(&lcd, "Q-CORE HEARTBEAT");
 
     int step = 0;
     while (1) {
@@ -139,6 +147,18 @@ void kernel_main(uint32_t magic, void* mbi) {
             serial_print("  BRTH: ");
             if (state.breathing_state > 0.5f) serial_print("ON ");
             else serial_print("OFF");
+
+            // Update LCD with Stability
+            lcd_set_cursor(&lcd, 0, 1);
+            lcd_print(&lcd, "STAB: ");
+            int stab_val = (int)state.stability;
+            char s_buf[4];
+            s_buf[0] = '0' + (stab_val / 100) % 10;
+            s_buf[1] = '0' + (stab_val / 10) % 10;
+            s_buf[2] = '0' + (stab_val % 10);
+            s_buf[3] = '\0';
+            lcd_print(&lcd, s_buf);
+            lcd_print(&lcd, "%");
         }
         step++;
 

@@ -34,8 +34,18 @@ float k_sqrt(float x) {
     return res;
 }
 
+float k_phase_lock(float n) {
+    // n: Parámetro de evolución (tiempo o índice de nodo)
+    // La restricción PI ancla el eje vertical (evita spin espurio)
+    // La restricción PHI ancla el eje azimutal (evita resonancia destructiva)
+    // Se incluye cos(PI * n) como paridad
+    return k_cos(PI * n) * k_cos(PI_PHI_CONST * n);
+}
+
 float golden_operator(float n) {
-    return k_cos(PI * n) * k_cos(PI * PHI * n);
+    // Usamos el candado de fase para garantizar coherencia
+    // Esto es un operador de segundo orden: Coherencia sobre Coherencia
+    return k_phase_lock(n) * k_phase_lock(n * PHI); 
 }
 
 void init_system(SystemState *state) {
@@ -131,9 +141,14 @@ void solve_step(SystemState *state, float dt) {
     }
 
     // 3. Metriplectic Coupling
-    // Stability is the product of Classical Shear and Toroidal Resonance
+    // La estabilidad solo aumenta si estamos en "Fase Segura"
+    float phase_coherence = k_phase_lock(state->time);
+    float stability_gate = phase_coherence * phase_coherence; // Cuadrado para rectificar (energía)
+
     float tor_boost = (state->sync_clock_c > 0.0f) ? state->sync_clock_c * 10.0f : 0.0f;
-    float d_metr = (target_stability - state->stability) * 0.1f + tor_boost;
+    
+    // El término de corrección ahora está modulado por el operador phi-pi
+    float d_metr = ((target_stability - state->stability) * 0.1f + tor_boost) * stability_gate;
     state->stability += d_metr * dt;
 
     // 4. Lindblad Visibility Filter (Bosonic-Fermionic Axis)
