@@ -76,13 +76,14 @@ void draw_ui(Display *display, Window window, GC gc, SystemState *state) {
     XSetForeground(display, gc, (state->sync_clock_c > 0.5) ? 0x22d3ee : 0x3b82f6);
     for (int i = 0; i < TORUS_DIM; i++) {
         for (int j = 0; j < TORUS_DIM; j++) {
-            float intensity = state->phi_re[i][j] * state->phi_re[i][j] + state->phi_im[i][j] * state->phi_im[i][j];
-            if (intensity > 0.1 && state->solenoid_filter > 0.7f) {
-                float angle = (float)i * (2.0f * PI / TORUS_DIM) + state->global_identity;
-                float radius = 100.0f + (float)j * 15.0f + intensity * 10.0f;
+                float intensity = state->phi_re[i][j] * state->phi_re[i][j] + state->phi_im[i][j] * state->phi_im[i][j];
+                if (intensity > 0.1 && state->solenoid_filter > 0.7f) {
+                    float angle = (float)i * (2.0f * PI / TORUS_DIM) + state->global_identity;
+                    float radius = 100.0f + (float)j * 15.0f + intensity * 10.0f;
                 
                 int px = cx + (int)(k_cos(angle) * radius);
-                int py = cy + (int)(k_sin(angle) * radius);
+                // Apply Nodal Bobbing to Y
+                int py = cy + (int)(k_sin(angle) * radius + state->vortex_z * 15.0f);
                 
                 int size = (state->breathing_state > 0.5f) ? 6 : 3;
                 if (state->solenoid_filter < 0.85f && size == 6) size = 3;

@@ -80,7 +80,8 @@ void draw_ui(Display *display, Window window, GC gc, SystemState *state) {
                 float angle = (float)i * (2.0f * PI / TORUS_DIM) + state->global_identity;
                 float radius = 80.0f + (float)j * 10.0f;
                 int px = right_cx + (int)(k_cos(angle) * radius);
-                int py = cy + (int)(k_sin(angle) * radius);
+                // Apply Nodal Bobbing to Y
+                int py = cy + (int)(k_sin(angle) * radius + state->vortex_z * 12.0f);
                 XFillArc(display, window, gc, px-2, py-2, 4, 4, 0, 360*64);
             }
         }

@@ -68,6 +68,9 @@ typedef struct {
     float audio_energy;      // Power from microphone
     float audio_coherence;   // Recognition score (Resonant lock)
     
+    // Nodal Synthesis
+    float vortex_z;          // z(t): Axial displacement of Taylor Vortices
+    
     CoreBus bus;            // Inter-core interaction layer
 } SystemState;
 

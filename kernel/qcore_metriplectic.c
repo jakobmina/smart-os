@@ -82,6 +82,8 @@ void init_system(SystemState *state) {
     state->lyapunov_dot = 0.0f;
     state->is_lasalle_locked = 0;
 
+    state->vortex_z = 0.0f;
+
     // Initialize Bus
     for(int i=0; i<4; i++) state->bus.core_sync[i] = 0.0f;
     state->bus.bus_throughput = 0.0f;
@@ -205,22 +207,26 @@ void solve_step(SystemState *state, float dt) {
         state->stability -= state->audio_energy * 10.0f * dt;
     }
 
-    // 7. Protocol Alpha: Benchmark Analysis
-    // The "Classical Baseline" is a laminar Couette state.
-    // Normalized energy density for nested quasiperiodic sync is ~0.5^4 = 0.0625
+    // 7. Nodal Synthesis z(t) = sum(Am cos(wm t + phm))
+    // Science decided: Use k_phase_lock for efficiency and tanh-like saturation for Z-restriction
+    float nodal_sum = 0.0f;
+    float m_amplitudes[] = {0.8f, 0.4f, 0.2f, 0.1f}; // Am for modes 2, 4, 8, 16
+    for (int m = 0; m < 4; m++) {
+        float mode_idx = (float)(2 << m); // 2, 4, 8, 16
+        nodal_sum += m_amplitudes[m] * k_phase_lock(state->time * mode_idx);
+    }
+    float z_limit = 2.0f;
+    state->vortex_z = nodal_sum / k_sqrt(1.0f + (nodal_sum*nodal_sum)/(z_limit*z_limit));
+
+    // 8. Protocol Alpha: Benchmark Analysis
     float ns_baseline = (state->shear_flow >= 9.9f) ? 0.0625f : (state->shear_flow / 10.0f) * 0.0625f;
-    float current_sync = state->sync_clock_c;
-    
-    // L2 Error: Divergence from steady state
-    float diff = ns_baseline - current_sync;
+    float diff = ns_baseline - state->sync_clock_c;
     state->l2_error = (0.995f * state->l2_error) + (0.005f * (diff * diff));
     
-    // Thermal Efficiency Score: Stability / (Total Entropy + 1.0)
-    // Higher is better: We want high stability with low temperature rise
     float heat_penalty = (state->temperature - 22.0f) * 0.1f;
     state->thermal_eff = (state->stability * 1.5f) / (1.0f + heat_penalty + state->entropy_rate);
     
-    // 8. Barbashin-LaSalle Diagnostics
+    // 9. Barbashin-LaSalle Diagnostics
     // Lyapunov Candidate V = 0.5*(100-rho)^2 + 0.5*(V_rms - PHI)^2
     float rho_err = 100.0f - state->stability;
     float phi_err = state->launder.current_rms - PHI;
