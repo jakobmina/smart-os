@@ -69,18 +69,34 @@ void kernel_main(uint32_t magic, void* mbi) {
         if (state.bus.bus_throughput > 1.0f) k_print_at(18, 6, "MAXFLOW", LIGHT_BLUE, BLACK);
         else k_print_at(18, 6, "IDLE", DARK_GRAY, BLACK);
 
-        k_print_at(2, 7, "LINDBLAD AXIS:", LIGHT_GRAY, BLACK);
-        if (state.bf_axis > 0.0f) k_print_at(18, 7, "BOSONIC ", CYAN, BLACK);
-        else k_print_at(18, 7, "FERMIONIC", MAGENTA, BLACK);
+        k_print_at(2, 7, "LAUNDER V:", LIGHT_GRAY, BLACK);
+        if (state.launder.last_v > 0.1f) k_print_at(18, 7, "5.0V [ON]", YELLOW, BLACK);
+        else k_print_at(18, 7, "0.0V [OFF]", DARK_GRAY, BLACK);
 
-        k_print_at(2, 8, "VISIBILITY:", LIGHT_GRAY, BLACK);
-        int vis_pct = (int)(state.visibility_score * 100);
-        char vis_buf[8];
-        vis_buf[0] = '0' + (vis_pct / 100) % 10;
-        vis_buf[1] = '0' + (vis_pct / 10) % 10;
-        vis_buf[2] = '0' + (vis_pct % 10);
-        vis_buf[3] = '%'; vis_buf[4] = '\0';
-        k_print_at(18, 8, vis_buf, (vis_pct > 50) ? GREEN : YELLOW, BLACK);
+        k_print_at(2, 8, "V_RMS (HAL):", LIGHT_GRAY, BLACK);
+        float v_rms = state.launder.current_rms;
+        char rms_buf[16];
+        int rms_int = (int)(v_rms * 1000);
+        rms_buf[0] = '0' + (rms_int / 1000) % 10;
+        rms_buf[1] = '.';
+        rms_buf[2] = '0' + (rms_int / 100) % 10;
+        rms_buf[3] = '0' + (rms_int / 10) % 10;
+        rms_buf[4] = '0' + (rms_int % 10);
+        rms_buf[5] = '\0';
+        k_print_at(18, 8, rms_buf, (v_rms > 1.61f && v_rms < 1.63f) ? GREEN : RED, BLACK);
+
+        k_print_at(2, 9, "SYSTEM TEMP:", LIGHT_GRAY, BLACK);
+        int temp_int = (int)state.temperature;
+        char temp_buf[8];
+        temp_buf[0] = '0' + (temp_int / 100) % 10;
+        temp_buf[1] = '0' + (temp_int / 10) % 10;
+        temp_buf[2] = '0' + (temp_int % 10);
+        temp_buf[3] = ' '; temp_buf[4] = 'C'; temp_buf[5] = '\0';
+        k_print_at(18, 9, temp_buf, (state.temperature < 50.0f) ? GREEN : (state.temperature < 80.0f) ? YELLOW : RED, BLACK);
+
+        k_print_at(2, 10, "LASALLE LOCK:", LIGHT_GRAY, BLACK);
+        if (state.is_lasalle_locked) k_print_at(18, 10, "INVARIANT", GREEN, BLACK);
+        else k_print_at(18, 10, "DRIFTING ", (state.lyapunov_dot <= 0.0f) ? YELLOW : RED, BLACK);
 
         // Render Holistic Visualization
         // 1. Central Sheared Channel (Z-Pinch)
@@ -93,15 +109,16 @@ void kernel_main(uint32_t magic, void* mbi) {
             float offset = k_sin(y_f * 4.0f + state.time) * (100.0f - state.stability) * 0.05f;
             int x_val = cx + (int)offset;
             
-            // Fading logic for channel
+            // Fading logic for channel (driven by Solenoid Filter)
             char c_out = '#';
-            if (state.visibility_score < 0.2f) c_out = ' ';
-            else if (state.visibility_score < 0.5f) c_out = '.';
+            if (state.solenoid_filter < 0.7f) c_out = ' ';
+            else if (state.solenoid_filter < 0.85f) c_out = '.';
             
             if (c_out != ' ') k_putc(x_val, y, c_out, chan_color, BLACK);
             
             // Pulsing Node in Channel (Only if visible)
-            if (state.breathing_state > 0.5f && (int)(state.time * 20) % 15 == i && state.visibility_score > 0.3f) {
+            // Pulsing Node in Channel (Only if visible / unfiltered)
+            if (state.breathing_state > 0.5f && (int)(state.time * 20) % 15 == i && state.solenoid_filter > 0.75f) {
                 k_putc(x_val, y, '@', YELLOW, BLACK);
             }
         }
@@ -119,8 +136,8 @@ void kernel_main(uint32_t magic, void* mbi) {
                     int y_pos = center_y + (int)(k_sin(angle) * radius);
                     
                     char t_out = (state.breathing_state > 0.5f) ? '*' : '.';
-                    if (state.visibility_score < 0.1f) t_out = ' ';
-                    else if (state.visibility_score < 0.4f && t_out == '*') t_out = '.';
+                    if (state.solenoid_filter < 0.68f) t_out = ' ';
+                    else if (state.solenoid_filter < 0.8f && t_out == '*') t_out = '.';
                     
                     if (t_out != ' ') k_putc(x_pos, y_pos, t_out, tor_color, BLACK);
                 }
@@ -148,7 +165,7 @@ void kernel_main(uint32_t magic, void* mbi) {
             if (state.breathing_state > 0.5f) serial_print("ON ");
             else serial_print("OFF");
 
-            // Update LCD with Stability
+            // Update LCD with Stability & RMS
             lcd_set_cursor(&lcd, 0, 1);
             lcd_print(&lcd, "STAB: ");
             int stab_val = (int)state.stability;
@@ -159,6 +176,18 @@ void kernel_main(uint32_t magic, void* mbi) {
             s_buf[3] = '\0';
             lcd_print(&lcd, s_buf);
             lcd_print(&lcd, "%");
+
+            lcd_set_cursor(&lcd, 0, 2);
+            lcd_print(&lcd, "RMS: ");
+            lcd_print(&lcd, rms_buf);
+
+            lcd_set_cursor(&lcd, 0, 3);
+            lcd_print(&lcd, "TEMP: ");
+            lcd_print(&lcd, temp_buf);
+            
+            lcd_set_cursor(&lcd, 12, 3);
+            if (state.is_lasalle_locked) lcd_print(&lcd, "[LOCK]");
+            else lcd_print(&lcd, "[...]");
         }
         step++;
 

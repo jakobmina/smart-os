@@ -64,8 +64,23 @@ void init_system(SystemState *state) {
     state->causal_flux = 0.0f;
     state->golden_filter = PHI;
     
-    state->bf_axis = 1.0f;       // Default to Bosonic (Visible)
-    state->visibility_score = 1.0f;
+    // Solenoid HAL Initialization
+    hal_launder_init(&state->launder);
+    state->solenoid_filter = 1.0f;
+
+    // Thermal Initialization
+    state->temperature = 22.0f; // Ambient Room Temp
+    state->entropy_rate = 0.0f;
+
+    // Protocol Alpha Initialization
+    state->rayleigh_raw = 0.0f;
+    state->l2_error = 0.0f;
+    state->thermal_eff = 1.0f;
+
+    // Barbashin-LaSalle Initialization
+    state->lyapunov_v = 0.0f;
+    state->lyapunov_dot = 0.0f;
+    state->is_lasalle_locked = 0;
 
     // Initialize Bus
     for(int i=0; i<4; i++) state->bus.core_sync[i] = 0.0f;
@@ -86,12 +101,13 @@ void init_system(SystemState *state) {
 float compute_sync_clock(SystemState *state) {
     float sum = 0.0f;
     float On = golden_operator(state->time);
+    float energy_on = On * On; // Use energy density for observable c
     
     for (int i = 0; i < TORUS_DIM; i++) {
         for (int j = 0; j < TORUS_DIM; j++) {
             float intensity = state->phi_re[i][j]*state->phi_re[i][j] + 
                              state->phi_im[i][j]*state->phi_im[i][j];
-            sum += intensity * On;
+            sum += intensity * energy_on;
         }
     }
     return sum / (float)(TORUS_DIM * TORUS_DIM);
@@ -99,29 +115,31 @@ float compute_sync_clock(SystemState *state) {
 
 void apply_breathing_projector(SystemState *state, float dt) {
     float On = golden_operator(state->time);
-    float phase = PI * On;
-    float e_re = k_cos(phase);
-    float e_im = k_sin(phase);
+    float dtheta = On * dt * 2.0f; // Angular evolution
     
-    float factor_re = 1.0f - e_re;
-    float factor_im = -e_im;
+    float cos_dt = k_cos(dtheta);
+    float sin_dt = k_sin(dtheta);
     
-    // Breathing state is the "Strobe Light" laser pumping
-    state->breathing_state = (k_cos(state->time * PI * 2.0f) > 0.0f) ? 1.0f : 0.0f;
+    float decay = (100.0f - state->stability) * 0.002f;
+    float pump = (state->shear_flow / 10.0f) * 0.1f; // Target intensity drive
 
     for (int i = 0; i < TORUS_DIM; i++) {
         for (int j = 0; j < TORUS_DIM; j++) {
-            float phi_r = state->phi_re[i][j];
-            float phi_i = state->phi_im[i][j];
+            float r = state->phi_re[i][j];
+            float im = state->phi_im[i][j];
             
-            // Interaction only during Strobe ON phase
-            float strobe_factor = state->gamma_strobe * state->breathing_state;
+            // 1. Unitary Rotation (Hamiltonian / Reversible)
+            state->phi_re[i][j] = r * cos_dt - im * sin_dt;
+            state->phi_im[i][j] = r * sin_dt + im * cos_dt;
             
-            float dphi_re = -strobe_factor * (phi_r * factor_re - phi_i * factor_im);
-            float dphi_im = -strobe_factor * (phi_r * factor_im + phi_i * factor_re);
+            // 2. Metriplectic Drive (Metric / Irreversible)
+            // Pulls intensity towards 1.0, modulated by stability/decay
+            float intensity = state->phi_re[i][j]*state->phi_re[i][j] + 
+                             state->phi_im[i][j]*state->phi_im[i][j];
+            float drive = (1.0f - intensity) * pump;
             
-            state->phi_re[i][j] += dphi_re * dt;
-            state->phi_im[i][j] += dphi_im * dt;
+            state->phi_re[i][j] += state->phi_re[i][j] * (drive - decay) * dt;
+            state->phi_im[i][j] += state->phi_im[i][j] * (drive - decay) * dt;
         }
     }
 }
@@ -148,33 +166,73 @@ void solve_step(SystemState *state, float dt) {
     float tor_boost = (state->sync_clock_c > 0.0f) ? state->sync_clock_c * 10.0f : 0.0f;
     
     // El término de corrección ahora está modulado por el operador phi-pi
-    float d_metr = ((target_stability - state->stability) * 0.1f + tor_boost) * stability_gate;
+    float d_metr = ((target_stability - state->stability) * 0.2f + tor_boost) * stability_gate;
     state->stability += d_metr * dt;
 
-    // 4. Lindblad Visibility Filter (Bosonic-Fermionic Axis)
-    // The bf_axis oscillates between +1 (Bosonic/Visible) and -1 (Fermionic/Protected)
-    state->bf_axis = k_cos(state->time * 0.4f); 
-    state->visibility_score = (1.0f + state->bf_axis) * 0.5f;
+    // 5. Solenoid HAL & RMS Control (The "Physical Filter")
+    float v_pulse = hal_launder_step(&state->launder, state->time);
+    
+    // The filter is the magnetic field effect: B = mu * I
+    state->solenoid_filter = 1.0f / (1.0f + (v_pulse * 0.1f));
+    state->causal_flux *= state->solenoid_filter;
 
-    // Information Pump (The Breathing Laser)
-    // Causal flux is modulated by visibility - in Fermionic state it becomes "latent"
-    if (state->breathing_state > 0.5f && state->stability > 90.0f) {
-        float raw_pump = state->sync_clock_c * 5.0f; 
-        state->causal_flux = raw_pump * state->visibility_score;
-        state->node_density += raw_pump * dt; // Density is conserved globally
-    } else {
-        state->causal_flux *= 0.8f; 
-        state->node_density *= 0.99f;
+    // 6. Thermal & Acoustic Dynamics (Metriplectic Dissipation)
+    // Joule Heating: Q_in = V^2 / R. Assume R_info = 10.0
+    float heating = (v_pulse * v_pulse) / 10.0f;
+    
+    // Acoustic Perturbation: Strong sound increases informational entropy
+    float acoustic_load = state->audio_energy * 20.0f; 
+    heating += acoustic_load; 
+
+    // Dissipative Cooling: Q_out = k * (T - T_amb)
+    float cooling = (state->temperature - 22.0f) * 0.05f;
+    
+    state->entropy_rate = heating + cooling; // Metriplectic coupling term
+    state->temperature += (heating - cooling) * dt;
+
+    // Thermal & Acoustic Stability Feedback
+    if (state->temperature > 60.0f) {
+        state->stability -= (state->temperature - 60.0f) * 0.01f * dt;
     }
     
-    // PHI filter resets with the parity dagger
-    if (k_cos(PI * state->time * 2.0f) < -0.99f) {
-        state->golden_filter = PHI;
-    } else {
-        state->golden_filter = (PHI * state->golden_filter + 1.0f) * 0.5f;
+    // Acoustic Coherence: "Golden Healing"
+    // If the sound is coherent (tonic), it helps stabilization
+    float healing_boost = state->audio_coherence * 5.0f * dt;
+    state->stability += healing_boost;
+    
+    // Sudden noise shock
+    if (state->audio_energy > 0.5f) {
+        state->stability -= state->audio_energy * 10.0f * dt;
     }
 
-    // 5. Inter-core Interaction
+    // 7. Protocol Alpha: Benchmark Analysis
+    // The "Classical Baseline" is a laminar Couette state.
+    // Normalized energy density for nested quasiperiodic sync is ~0.5^4 = 0.0625
+    float ns_baseline = (state->shear_flow >= 9.9f) ? 0.0625f : (state->shear_flow / 10.0f) * 0.0625f;
+    float current_sync = state->sync_clock_c;
+    
+    // L2 Error: Divergence from steady state
+    float diff = ns_baseline - current_sync;
+    state->l2_error = (0.995f * state->l2_error) + (0.005f * (diff * diff));
+    
+    // Thermal Efficiency Score: Stability / (Total Entropy + 1.0)
+    // Higher is better: We want high stability with low temperature rise
+    float heat_penalty = (state->temperature - 22.0f) * 0.1f;
+    state->thermal_eff = (state->stability * 1.5f) / (1.0f + heat_penalty + state->entropy_rate);
+    
+    // 8. Barbashin-LaSalle Diagnostics
+    // Lyapunov Candidate V = 0.5*(100-rho)^2 + 0.5*(V_rms - PHI)^2
+    float rho_err = 100.0f - state->stability;
+    float phi_err = state->launder.current_rms - PHI;
+    float v_new = 0.5f * (rho_err * rho_err + phi_err * phi_err);
+    
+    state->lyapunov_dot = (v_new - state->lyapunov_v) / dt;
+    state->lyapunov_v = v_new;
+    
+    // Convergence Criteria for Maximal Invariant Set
+    state->is_lasalle_locked = (state->stability > 98.0f && (phi_err * phi_err) < 0.001f);
+
+    // 9. Inter-core Interaction
     for(int i=0; i<4; i++) {
         // Each core synchronizes based on the golden operator phase shift
         float core_phase = state->time + (float)i * (PI / 2.0f);

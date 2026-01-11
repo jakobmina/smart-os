@@ -2,6 +2,7 @@
 #define QCORE_METRIPLECTIC_H
 
 #include <stdint.h>
+#include "hal_golden_launder.h"
 
 #define PHI 1.618033988f
 #define PI  3.141592653f
@@ -45,9 +46,27 @@ typedef struct {
     float causal_flux;      // Causal trace (Restored)
     float golden_filter;    // Φ self-action filter
     
-    // Lindblad Visibility Filter (Bosonic-Fermionic Axis)
-    float bf_axis;          // Sn: [+1 Bosonic/Visible, -1 Fermionic/Protected]
-    float visibility_score; // Transparency of the hologram
+    // Solenoid HAL Controller
+    GoldenLaunder launder;
+    float solenoid_filter;  // B-Field modulation factor
+    
+    // Thermal Dynamics
+    float temperature;      // T (Celsius)
+    float entropy_rate;     // dS/dt (Total production)
+    
+    // Protocol Alpha: Taylor-Couette Benchmarking
+    float rayleigh_raw;     // Ta: (Classical Driving Force)
+    float l2_error;         // Divergence from Navier-Stokes baseline
+    float thermal_eff;      // Efficiency Score (Stability/Heat)
+    
+    // Barbashin-LaSalle Stability Diagnostics
+    float lyapunov_v;       // V: Energy Candidate
+    float lyapunov_dot;     // dV/dt: Stability Derivative
+    int is_lasalle_locked;  // Flag: Maximal Invariant Set reached
+    
+    // Acoustic Dynamics
+    float audio_energy;      // Power from microphone
+    float audio_coherence;   // Recognition score (Resonant lock)
     
     CoreBus bus;            // Inter-core interaction layer
 } SystemState;
