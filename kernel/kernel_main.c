@@ -45,15 +45,15 @@ void kernel_main(uint32_t magic, void* mbi) {
         k_clear(BLACK);
         
         // Header
-        k_print_at(2, 1, "QUOREMIND Q-CORE // SHEARED TORUS KERNEL v3.0", LIGHT_BLUE, BLACK);
-        k_print_at(2, 2, "===========================================", DARK_GRAY, BLACK);
+        k_print_at(2, 0, "QUOREMIND Q-CORE // SHEARED TORUS KERNEL v3.0", LIGHT_BLUE, BLACK);
+        k_print_at(2, 1, "===========================================", DARK_GRAY, BLACK);
 
-        k_print_at(2, 4, "SYSTEM STATUS:", LIGHT_GRAY, BLACK);
-        if (state.stability > 90.0f) k_print_at(17, 4, "RESONANT LOCK", GREEN, BLACK);
-        else if (state.stability > 70.0f) k_print_at(17, 4, "CANAL OPEN", CYAN, BLACK);
-        else k_print_at(17, 4, "DRIFTING", YELLOW, BLACK);
+        k_print_at(2, 3, "SYSTEM STATUS:", LIGHT_GRAY, BLACK);
+        if (state.stability > 90.0f) k_print_at(17, 3, "RESONANT LOCK", GREEN, BLACK);
+        else if (state.stability > 70.0f) k_print_at(17, 3, "CANAL OPEN", CYAN, BLACK);
+        else k_print_at(17, 3, "DRIFTING", YELLOW, BLACK);
 
-        k_print_at(2, 5, "SYNC CLOCK C:", LIGHT_GRAY, BLACK);
+        k_print_at(2, 4, "SYNC CLOCK C:", LIGHT_GRAY, BLACK);
         char c_buf[16];
         int c_int = (int)(state.sync_clock_c * 1000);
         if (c_int < 0) { c_buf[0] = '-'; c_int = -c_int; } else { c_buf[0] = ' '; }
@@ -63,17 +63,17 @@ void kernel_main(uint32_t magic, void* mbi) {
         c_buf[4] = '0' + (c_int / 10) % 10;
         c_buf[5] = '0' + (c_int % 10);
         c_buf[6] = '\0';
-        k_print_at(17, 5, c_buf, (state.sync_clock_c > 0.5f) ? GREEN : MAGENTA, BLACK);
+        k_print_at(17, 4, c_buf, (state.sync_clock_c > 0.5f) ? GREEN : MAGENTA, BLACK);
 
-        k_print_at(2, 6, "BUS THROUGHPUT:", LIGHT_GRAY, BLACK);
-        if (state.bus.bus_throughput > 1.0f) k_print_at(18, 6, "MAXFLOW", LIGHT_BLUE, BLACK);
-        else k_print_at(18, 6, "IDLE", DARK_GRAY, BLACK);
+        k_print_at(2, 5, "BUS THROUGHPUT:", LIGHT_GRAY, BLACK);
+        if (state.bus.bus_throughput > 1.0f) k_print_at(18, 5, "MAXFLOW", LIGHT_BLUE, BLACK);
+        else k_print_at(18, 5, "IDLE", DARK_GRAY, BLACK);
 
-        k_print_at(2, 7, "LAUNDER V:", LIGHT_GRAY, BLACK);
-        if (state.launder.last_v > 0.1f) k_print_at(18, 7, "5.0V [ON]", YELLOW, BLACK);
-        else k_print_at(18, 7, "0.0V [OFF]", DARK_GRAY, BLACK);
+        k_print_at(2, 6, "LAUNDER V:", LIGHT_GRAY, BLACK);
+        if (state.launder.last_v > 0.1f) k_print_at(18, 6, "5.0V [ON]", YELLOW, BLACK);
+        else k_print_at(18, 6, "0.0V [OFF]", DARK_GRAY, BLACK);
 
-        k_print_at(2, 8, "V_RMS (HAL):", LIGHT_GRAY, BLACK);
+        k_print_at(2, 7, "V_RMS (HAL):", LIGHT_GRAY, BLACK);
         float v_rms = state.launder.current_rms;
         char rms_buf[16];
         int rms_int = (int)(v_rms * 1000);
@@ -83,20 +83,20 @@ void kernel_main(uint32_t magic, void* mbi) {
         rms_buf[3] = '0' + (rms_int / 10) % 10;
         rms_buf[4] = '0' + (rms_int % 10);
         rms_buf[5] = '\0';
-        k_print_at(18, 8, rms_buf, (v_rms > 1.61f && v_rms < 1.63f) ? GREEN : RED, BLACK);
+        k_print_at(18, 7, rms_buf, (v_rms > 1.61f && v_rms < 1.63f) ? GREEN : RED, BLACK);
 
-        k_print_at(2, 9, "SYSTEM TEMP:", LIGHT_GRAY, BLACK);
+        k_print_at(2, 8, "SYSTEM TEMP:", LIGHT_GRAY, BLACK);
         int temp_int = (int)state.temperature;
         char temp_buf[8];
         temp_buf[0] = '0' + (temp_int / 100) % 10;
         temp_buf[1] = '0' + (temp_int / 10) % 10;
         temp_buf[2] = '0' + (temp_int % 10);
         temp_buf[3] = ' '; temp_buf[4] = 'C'; temp_buf[5] = '\0';
-        k_print_at(18, 9, temp_buf, (state.temperature < 50.0f) ? GREEN : (state.temperature < 80.0f) ? YELLOW : RED, BLACK);
+        k_print_at(18, 8, temp_buf, (state.temperature < 50.0f) ? GREEN : (state.temperature < 80.0f) ? YELLOW : RED, BLACK);
 
-        k_print_at(2, 10, "LASALLE LOCK:", LIGHT_GRAY, BLACK);
-        if (state.is_lasalle_locked) k_print_at(18, 10, "INVARIANT", GREEN, BLACK);
-        else k_print_at(18, 10, "DRIFTING ", (state.lyapunov_dot <= 0.0f) ? YELLOW : RED, BLACK);
+        k_print_at(2, 9, "LASALLE LOCK:", LIGHT_GRAY, BLACK);
+        if (state.is_lasalle_locked) k_print_at(18, 9, "INVARIANT", GREEN, BLACK);
+        else k_print_at(18, 9, "DRIFTING ", (state.lyapunov_dot <= 0.0f) ? YELLOW : RED, BLACK);
 
         // Render Holistic Visualization
         // 1. Central Sheared Channel (Z-Pinch)
@@ -146,10 +146,10 @@ void kernel_main(uint32_t magic, void* mbi) {
 
         // 3. Core Indicators
         for(int i=0; i<4; i++) {
-            k_print_at(2, 10 + i, "CORE", LIGHT_GRAY, BLACK);
-            k_putc(7, 10 + i, '0' + i, WHITE, BLACK);
+            k_print_at(2, 11 + i, "CORE", LIGHT_GRAY, BLACK);
+            k_putc(7, 11 + i, '0' + i, WHITE, BLACK);
             int sync_len = (int)(state.bus.core_sync[i] * 10);
-            for(int s=0; s<10; s++) k_putc(9+s, 10+i, (s < sync_len) ? '>' : '-', (sync_len > 8) ? GREEN : DARK_GRAY, BLACK);
+            for(int s=0; s<10; s++) k_putc(9+s, 11+i, (s < sync_len) ? '>' : '-', (sync_len > 8) ? GREEN : DARK_GRAY, BLACK);
         }
 
         k_print_at(2, ROWS-2, "ENV: QEMU-I386 // BRIDGE: TORUS-SHEAR // CORE: MULTIPLEX", DARK_GRAY, BLACK);
