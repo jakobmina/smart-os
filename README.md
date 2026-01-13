@@ -50,6 +50,8 @@ The **QuoreMind Q-CORE** is not a conventional OS. It is a physical-informationa
 * **Freestanding Environment**: Zero dependencies on host OS or standard libraries.
 * **Multiboot1 Compliant**: Boots directly in QEMU or on physical i386 hardware.
 * **VGA Text-Art Rendering**: High-fidelity 16-color ASCII visualization of plasma columns at `0xB8000`.
+* **Real-time Power Monitoring**: On-screen display of the system's power draw, derived from the simulated voltage.
+* **I2C LCD Support**: Displays key system metrics on a connected 20x4 LCD screen.
 
 ### 2. Lindblad Master Engine
 

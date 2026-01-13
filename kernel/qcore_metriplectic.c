@@ -71,6 +71,7 @@ void init_system(SystemState *state) {
     // Thermal Initialization
     state->temperature = 22.0f; // Ambient Room Temp
     state->entropy_rate = 0.0f;
+    state->power_draw = 0.0f;
 
     // Protocol Alpha Initialization
     state->rayleigh_raw = 0.0f;
@@ -180,7 +181,8 @@ void solve_step(SystemState *state, float dt) {
 
     // 6. Thermal & Acoustic Dynamics (Metriplectic Dissipation)
     // Joule Heating: Q_in = V^2 / R. Assume R_info = 10.0
-    float heating = (v_pulse * v_pulse) / 10.0f;
+    state->power_draw = (v_pulse * v_pulse) / 10.0f;
+    float heating = state->power_draw;
     
     // Acoustic Perturbation: Strong sound increases informational entropy
     float acoustic_load = state->audio_energy * 20.0f; 

@@ -6,6 +6,25 @@
 SystemState state;
 LcdI2c lcd;
 
+// Custom itoa for freestanding environment
+void itoa(int n, char s[]) {
+    int i, sign;
+    if ((sign = n) < 0) n = -n;
+    i = 0;
+    do {
+        s[i++] = n % 10 + '0';
+    } while ((n /= 10) > 0);
+    if (sign < 0) s[i++] = '-';
+    s[i] = '\0';
+
+    // Reverse the string
+    for (int j = 0, k = i - 1; j < k; j++, k--) {
+        char c = s[j];
+        s[j] = s[k];
+        s[k] = c;
+    }
+}
+
 // Port I/O
 static inline void outb(uint16_t port, uint8_t val) {
     __asm__ volatile ( "outb %0, %1" : : "a"(val), "Nd"(port) );
@@ -94,9 +113,30 @@ void kernel_main(uint32_t magic, void* mbi) {
         temp_buf[3] = ' '; temp_buf[4] = 'C'; temp_buf[5] = '\0';
         k_print_at(18, 8, temp_buf, (state.temperature < 50.0f) ? GREEN : (state.temperature < 80.0f) ? YELLOW : RED, BLACK);
 
-        k_print_at(2, 9, "LASALLE LOCK:", LIGHT_GRAY, BLACK);
-        if (state.is_lasalle_locked) k_print_at(18, 9, "INVARIANT", GREEN, BLACK);
-        else k_print_at(18, 9, "DRIFTING ", (state.lyapunov_dot <= 0.0f) ? YELLOW : RED, BLACK);
+        k_print_at(2, 9, "POWER DRAW:", LIGHT_GRAY, BLACK);
+        char power_buf[16];
+        int p_int_part = (int)state.power_draw;
+        int p_frac_part = (int)((state.power_draw - p_int_part) * 100);
+
+        char int_str[8];
+        itoa(p_int_part, int_str);
+
+        int i = 0;
+        while(int_str[i] != '\0') {
+            power_buf[i] = int_str[i];
+            i++;
+        }
+        power_buf[i++] = '.';
+        power_buf[i++] = '0' + (p_frac_part / 10) % 10;
+        power_buf[i++] = '0' + (p_frac_part % 10);
+        power_buf[i++] = ' ';
+        power_buf[i++] = 'W';
+        power_buf[i] = '\0';
+        k_print_at(18, 9, power_buf, (state.power_draw < 1.0f) ? GREEN : (state.power_draw < 2.0f) ? YELLOW : RED, BLACK);
+
+        k_print_at(2, 10, "LASALLE LOCK:", LIGHT_GRAY, BLACK);
+        if (state.is_lasalle_locked) k_print_at(18, 10, "INVARIANT", GREEN, BLACK);
+        else k_print_at(18, 10, "DRIFTING ", (state.lyapunov_dot <= 0.0f) ? YELLOW : RED, BLACK);
 
         // Render Holistic Visualization
         // 1. Central Sheared Channel (Z-Pinch)
@@ -146,10 +186,10 @@ void kernel_main(uint32_t magic, void* mbi) {
 
         // 3. Core Indicators
         for(int i=0; i<4; i++) {
-            k_print_at(2, 12 + i, "CORE", LIGHT_GRAY, BLACK);
-            k_putc(7, 12 + i, '0' + i, WHITE, BLACK);
+            k_print_at(2, 13 + i, "CORE", LIGHT_GRAY, BLACK);
+            k_putc(7, 13 + i, '0' + i, WHITE, BLACK);
             int sync_len = (int)(state.bus.core_sync[i] * 10);
-            for(int s=0; s<10; s++) k_putc(10+s, 11+i, (s < sync_len) ? '>' : '-', (sync_len > 9) ? GREEN : DARK_GRAY, BLACK);
+            for(int s=0; s<10; s++) k_putc(10+s, 13+i, (s < sync_len) ? '>' : '-', (sync_len > 9) ? GREEN : DARK_GRAY, BLACK);
         }
 
         k_print_at(2, ROWS-2, "ENV: QEMU-I386 // BRIDGE: TORUS-SHEAR // CORE: MULTIPLEX", DARK_GRAY, BLACK);
@@ -185,9 +225,9 @@ void kernel_main(uint32_t magic, void* mbi) {
             lcd_print(&lcd, "TEMP: ");
             lcd_print(&lcd, temp_buf);
             
-            lcd_set_cursor(&lcd, 12, 3);
-            if (state.is_lasalle_locked) lcd_print(&lcd, "[LOCK]");
-            else lcd_print(&lcd, "[...]");
+            lcd_set_cursor(&lcd, 11, 3);
+            lcd_print(&lcd, "PWR: ");
+            lcd_print(&lcd, power_buf);
         }
         step++;
 
