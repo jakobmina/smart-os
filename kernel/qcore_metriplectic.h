@@ -53,6 +53,7 @@ typedef struct {
     // Thermal Dynamics
     float temperature;      // T (Celsius)
     float entropy_rate;     // dS/dt (Total production)
+    float power_draw;       // P (Watts)
     
     // Protocol Alpha: Taylor-Couette Benchmarking
     float rayleigh_raw;     // Ta: (Classical Driving Force)
