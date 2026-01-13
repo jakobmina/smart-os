@@ -46,7 +46,7 @@ void kernel_main(uint32_t magic, void* mbi) {
         
         // Header
         k_print_at(2, 0, "QUOREMIND Q-CORE // SHEARED TORUS KERNEL v3.0", LIGHT_BLUE, BLACK);
-        k_print_at(2, 1, "===========================================", DARK_GRAY, BLACK);
+        k_print_at(2, 1, "|==============================================|", DARK_GRAY, BLACK);
 
         k_print_at(2, 3, "SYSTEM STATUS:", LIGHT_GRAY, BLACK);
         if (state.stability > 90.0f) k_print_at(17, 3, "RESONANT LOCK", GREEN, BLACK);
@@ -146,10 +146,10 @@ void kernel_main(uint32_t magic, void* mbi) {
 
         // 3. Core Indicators
         for(int i=0; i<4; i++) {
-            k_print_at(2, 11 + i, "CORE", LIGHT_GRAY, BLACK);
-            k_putc(7, 11 + i, '0' + i, WHITE, BLACK);
+            k_print_at(2, 12 + i, "CORE", LIGHT_GRAY, BLACK);
+            k_putc(7, 12 + i, '0' + i, WHITE, BLACK);
             int sync_len = (int)(state.bus.core_sync[i] * 10);
-            for(int s=0; s<10; s++) k_putc(9+s, 11+i, (s < sync_len) ? '>' : '-', (sync_len > 8) ? GREEN : DARK_GRAY, BLACK);
+            for(int s=0; s<10; s++) k_putc(10+s, 11+i, (s < sync_len) ? '>' : '-', (sync_len > 9) ? GREEN : DARK_GRAY, BLACK);
         }
 
         k_print_at(2, ROWS-2, "ENV: QEMU-I386 // BRIDGE: TORUS-SHEAR // CORE: MULTIPLEX", DARK_GRAY, BLACK);
