@@ -11,43 +11,101 @@
 #define WIDTH 800
 #define HEIGHT 600
 
+static const char *banner_lines[] = {
+    "  @@@@@@ @@@@@@@@@@   @@@@@@  @@@@@@@   @@@@@@ @@@ @@@  @@@@@@",
+    " !@@     @@! @@! @@! @@!  @@@ @@!  @@@ !@@     @@! !@@ !@@    ",
+    "  !@@!!  @!! !!@ @!@ @!@  !@! @!@@!@!   !@@!!   !@!@!   !@@!! ",
+    "     !:! !!:     !!: !!:  !!! !!:          !:!   !!:       !:!",
+    " ::.: :   :      :    : :. :   :       ::.: :    .:    ::.: : "
+};
+
+void draw_banner_x11(Display *display, Window window, GC gc, SystemState *state) {
+    int start_x = 50;
+    int start_y = 30;
+    int char_w = 7;
+    int char_h = 12;
+
+    int scanline_x = (int)(state->time * 300.0f) % WIDTH;
+
+    unsigned long base_color = 0x22d3ee; // Cyan
+    unsigned long alt_color = 0x3b82f6;  // Blue
+
+    if (state->stability < 40.0f) {
+        base_color = 0xef4444; // Red
+        alt_color = 0x475569;  // Slate
+    } else if (state->stability < 70.0f) {
+        base_color = 0x22d3ee; // Cyan
+        alt_color = 0xd946ef;  // Magenta
+    }
+
+    for (int y = 0; y < 5; y++) {
+        const char *line = banner_lines[y];
+        for (int x = 0; line[x] != '\0'; x++) {
+            if (line[x] == ' ') continue;
+
+            int px = start_x + x * char_w;
+            int py = start_y + y * char_h;
+
+            XSetForeground(display, gc, (x % 2 == 0) ? base_color : alt_color);
+            
+            // Scanline
+            if (px > scanline_x - 15 && px < scanline_x + 15) {
+                XSetForeground(display, gc, 0xFFFFFF);
+            }
+
+            // Glitch
+            if (state->stability < 50.0f) {
+                if (((int)(state->time * 50) % 7) == y) {
+                    XSetForeground(display, gc, (state->stability < 30.0f) ? 0xef4444 : 0xfacc15);
+                }
+            }
+
+            char c[2] = {line[x], '\0'};
+            XDrawString(display, window, gc, px, py, c, 1);
+        }
+    }
+}
+
 void draw_ui(Display *display, Window window, GC gc, SystemState *state) {
     XClearWindow(display, window);
 
+    // Dynamic Banner
+    draw_banner_x11(display, window, gc, state);
+
     // Header Decal
     XSetForeground(display, gc, 0x3b82f6); // Blue
-    XDrawString(display, window, gc, 20, 30, "QUOREMIND SIM // INTEGRATED TOROIDAL-SHEAR MODEL v3.0", 54);
+    XDrawString(display, window, gc, 20, 110, "QUOREMIND SIM // INTEGRATED TOROIDAL-SHEAR MODEL v3.0", 54);
     
     char buf[128];
     sprintf(buf, "STABILITY: %.2f %% // SHEAR_FLOW: %.2f", state->stability, state->shear_flow);
-    XDrawString(display, window, gc, 20, 50, buf, strlen(buf));
+    XDrawString(display, window, gc, 20, 130, buf, strlen(buf));
 
     sprintf(buf, "Bitstream: %.2f bits/s", state->bit_stream);
-    XDrawString(display, window, gc, 20, 70, buf, strlen(buf));
+    XDrawString(display, window, gc, 20, 150, buf, strlen(buf));
     
     // Audio Diagnostics
     sprintf(buf, "Acoustic Load: %.2f", state->audio_energy);
     XSetForeground(display, gc, 0xa78bfa);
-    XDrawString(display, window, gc, 20, 90, buf, strlen(buf));
+    XDrawString(display, window, gc, 20, 170, buf, strlen(buf));
     if (state->audio_coherence > 0.5f) {
         XSetForeground(display, gc, 0x10b981);
-        XDrawString(display, window, gc, 20, 105, "RECOGNITION: LOCKED", 19);
+        XDrawString(display, window, gc, 20, 185, "RECOGNITION: LOCKED", 19);
     }
     
     sprintf(buf, "CLOCK_C: %.4f // GLOBAL_ID: %.2f rad", state->sync_clock_c, state->global_identity);
     XSetForeground(display, gc, (state->sync_clock_c > 0.5) ? 0x10b981 : 0x60a5fa);
-    XDrawString(display, window, gc, 20, 125, buf, strlen(buf));
+    XDrawString(display, window, gc, 20, 205, buf, strlen(buf));
 
     sprintf(buf, "BUS_THROUGHPUT: %.2f // BREATHING: %.2f", state->bus.bus_throughput, state->breathing_state);
-    XDrawString(display, window, gc, 20, 145, buf, strlen(buf));
+    XDrawString(display, window, gc, 20, 225, buf, strlen(buf));
 
     sprintf(buf, "LAUNDER V: %.1f [Duty: %.2f] // FILTER: %.2f", state->launder.last_v, state->launder.duty_cycle, state->solenoid_filter);
     XSetForeground(display, gc, (state->launder.last_v > 0.1) ? 0xfacc15 : 0x475569);
-    XDrawString(display, window, gc, 20, 165, buf, strlen(buf));
+    XDrawString(display, window, gc, 20, 245, buf, strlen(buf));
 
     sprintf(buf, "TEMPERATURE: %.2f C // ENTROPY_RATE: %.4f", state->temperature, state->entropy_rate);
     XSetForeground(display, gc, (state->temperature > 50.0) ? 0xef4444 : 0x22d3ee);
-    XDrawString(display, window, gc, 20, 185, buf, strlen(buf));
+    XDrawString(display, window, gc, 20, 265, buf, strlen(buf));
 
     int cx = WIDTH / 2;
     int cy = HEIGHT / 2;
