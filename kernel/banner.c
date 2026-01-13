@@ -2,11 +2,11 @@
 #include "vga_driver.h"
 
 static const char *banner_lines[] = {
-    "  @@@@@@ @@@@@@@@@@   @@@@@@  @@@@@@@   @@@@@@ @@@ @@@  @@@@@@",
+    " !@@@@@@ @@@@@@@@@@   @@@@@@  @@@@@@@   @@@@@@ @@@ @@@  @@@@@@",
     " !@@     @@! @@! @@! @@!  @@@ @@!  @@@ !@@     @@! !@@ !@@    ",
     "  !@@!!  @!! !!@ @!@ @!@  !@! @!@@!@!   !@@!!   !@!@!   !@@!! ",
     "     !:! !!:     !!: !!:  !!! !!:          !:!   !!:       !:!",
-    " ::.: :   :      :    : :. :   :       ::.: :    .:    ::.: : "
+    " ::.:!!: |!|:   |!|: !:!.!:!! !|:       ::.:!:   !.:    ::.:!!:"
 };
 
 void render_banner(const SystemState *state) {
@@ -22,7 +22,7 @@ void render_banner(const SystemState *state) {
     
     if (state->stability < 40.0f) {
         base_fg = RED;
-        alt_fg = DARK_GRAY;
+        alt_fg = YELOW;
     } else if (state->stability < 70.0f) {
         base_fg = CYAN;
         alt_fg = MAGENTA;

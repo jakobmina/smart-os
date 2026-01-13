@@ -192,7 +192,7 @@ void kernel_main(uint32_t magic, void* mbi) {
             for(int s=0; s<10; s++) k_putc(10+s, 19+i, (s < sync_len) ? '>' : '-', (sync_len > 9) ? GREEN : DARK_GRAY, BLACK);
         }
 
-        k_print_at(2, ROWS-2, "ENV: QEMU-I386 // BRIDGE: TORUS-SHEAR // CORE: MULTIPLEX", DARK_GRAY, BLACK);
+        k_print_at(2, 22, "ENV: QEMU-I386 // BRIDGE: TORUS-SHEAR // CORE: MULTIPLEX", DARK_GRAY, BLACK);
 
         if (step % 5 == 0) {
             static const char spinner[] = {'|', '/', '-', '\\'};
