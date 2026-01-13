@@ -24,8 +24,8 @@ void render_banner(const SystemState *state) {
         base_fg = RED;
         alt_fg = DARK_GRAY;
     } else if (state->stability < 70.0f) {
-        base_fg = ORANGE;
-        alt_fg = BROWN;
+        base_fg = CYAN;
+        alt_fg = MAGENTA;
     }
 
     for (int y = 0; y < 5; y++) {
